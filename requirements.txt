@@ -2,11 +2,3 @@ flask
 pyfiglet
 termcolor
 requests
-tempfile
-subprocess
-os
-re
-shutil
-stat
-functools
-time
