@@ -184,6 +184,15 @@ def scan_repo(path, custom_patterns=None, exclude_paths=None, file_types=None):
 
 @app.route("/", methods=["GET"])
 def home():
+    """Serve the landing page"""
+    try:
+        static_path = os.path.join(os.path.dirname(__file__), 'static')
+        return send_from_directory(static_path, 'index.html')
+    except Exception as e:
+        return jsonify({"error": f"Failed to load landing page: {str(e)}"}), 500
+
+@app.route("/api-docs", methods=["GET"])
+def api_documentation():
     """API documentation endpoint"""
     return jsonify({
         "service": "Kai API",
@@ -252,9 +261,9 @@ def home():
                 "method": "GET", 
                 "description": "Interactive Swagger UI documentation"
             },
-            "/landing": {
+            "/api-docs": {
                 "method": "GET",
-                "description": "HTML landing page with API overview"
+                "description": "JSON API documentation"
             },
             "/openapi.json": {
                 "method": "GET",
@@ -817,15 +826,6 @@ def openapi_yaml():
     except Exception as e:
         return jsonify({"error": f"Failed to load OpenAPI specification: {str(e)}"}), 500
 
-@app.route("/landing", methods=["GET"])
-def landing_page():
-    """Serve the landing page"""
-    try:
-        static_path = os.path.join(os.path.dirname(__file__), 'static')
-        return send_from_directory(static_path, 'index.html')
-    except Exception as e:
-        return jsonify({"error": f"Failed to load landing page: {str(e)}"}), 500
-
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({
@@ -833,7 +833,7 @@ def not_found(error):
         "available_endpoints": [
             "/", "/health", "/scan", "/scan/bulk", "/scan/<username>/<repo_name>", 
             "/scan/with-config", "/secrets/types", "/rules/default", 
-            "/config/rules", "/example-payloads", "/docs", "/openapi.json", "/openapi.yaml"
+            "/config/rules", "/example-payloads", "/docs", "/api-docs", "/openapi.json", "/openapi.yaml"
         ]
     }), 404
 
