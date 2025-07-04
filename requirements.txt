@@ -2,3 +2,4 @@ flask
 pyfiglet
 termcolor
 requests
+pyyaml

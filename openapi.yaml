@@ -1,0 +1,620 @@
+openapi: 3.0.3
+info:
+  title: Kai API - Secret Scanner
+  description: |
+    API to scan repositories for API key leaks and sensitive files. 
+    
+    This service provides real-time scanning of GitHub repositories to detect various types of secrets, API keys, and sensitive information. It supports both single repository scanning and bulk operations with customizable rules and configurations.
+    
+    ## Features
+    - Scan single or multiple repositories
+    - Detect 24+ types of secrets and API keys
+    - Custom regex rules support
+    - File type and path filtering
+    - No authentication required
+    - Real-time scanning only (no data storage)
+    
+    ## Security
+    - Only GitHub repositories are supported
+    - No local path scanning for security
+    - Temporary directories are automatically cleaned up
+    - Results are not stored server-side
+  version: 1.0.0
+  contact:
+    name: Kai API Support
+    email: support@kai-api.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api.kai-scanner.com
+    description: Production server
+
+paths:
+  /:
+    get:
+      tags:
+        - Documentation
+      summary: API Documentation
+      description: Get comprehensive API documentation with all available endpoints
+      responses:
+        '200':
+          description: API documentation retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: "Kai API"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  description:
+                    type: string
+                  endpoints:
+                    type: object
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health Check
+      description: Check if the service is alive and responsive
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /secrets/types:
+    get:
+      tags:
+        - Configuration
+      summary: Get Secret Types
+      description: Return a categorized list of all supported secret types and patterns
+      responses:
+        '200':
+          description: Secret types retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecretTypesResponse'
+
+  /rules/default:
+    get:
+      tags:
+        - Configuration
+      summary: Get Default Rules
+      description: Return all default built-in detection rules with patterns and descriptions
+      responses:
+        '200':
+          description: Default rules retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultRulesResponse'
+
+  /config/rules:
+    post:
+      tags:
+        - Configuration
+      summary: Validate Custom Rules
+      description: Validate custom regex rules format (validation only, not stored server-side)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomRulesRequest'
+      responses:
+        '200':
+          description: Rules validated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleValidationResponse'
+        '400':
+          description: Invalid rules format or regex patterns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /example-payloads:
+    get:
+      tags:
+        - Documentation
+      summary: Get Example Payloads
+      description: Return sample JSON payloads for testing all API endpoints (development helper)
+      responses:
+        '200':
+          description: Example payloads retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamplePayloadsResponse'
+
+  /scan:
+    post:
+      tags:
+        - Scanning
+      summary: Scan Single Repository
+      description: Scan a single GitHub repository for secrets and sensitive files
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SingleScanRequest'
+      responses:
+        '200':
+          description: Repository scanned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResponse'
+        '400':
+          description: Invalid request or repository URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during scanning
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scan/bulk:
+    post:
+      tags:
+        - Scanning
+      summary: Scan Multiple Repositories
+      description: Scan multiple GitHub repositories in one request (maximum 10 repositories)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkScanRequest'
+      responses:
+        '200':
+          description: Bulk scan completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkScanResponse'
+        '400':
+          description: Invalid request or too many repositories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during bulk scanning
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scan/with-config:
+    post:
+      tags:
+        - Scanning
+      summary: Scan with Custom Configuration
+      description: Scan a repository with custom rules, exclude paths, and file type filters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfiguredScanRequest'
+      responses:
+        '200':
+          description: Repository scanned with custom configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfiguredScanResponse'
+        '400':
+          description: Invalid configuration or repository URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during configured scanning
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scan/{username}/{repo_name}:
+    get:
+      tags:
+        - Scanning
+      summary: Scan Repository by URL Parameters
+      description: Shortcut for scanning public GitHub repositories using URL parameters
+      parameters:
+        - name: username
+          in: path
+          required: true
+          description: GitHub username
+          schema:
+            type: string
+            example: "octocat"
+        - name: repo_name
+          in: path
+          required: true
+          description: Repository name
+          schema:
+            type: string
+            example: "Hello-World"
+      responses:
+        '200':
+          description: Repository scanned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResponse'
+        '400':
+          description: Invalid username or repository name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error during scanning
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        timestamp:
+          type: number
+          example: 1751599606.657524
+        service:
+          type: string
+          example: "Kai API"
+        version:
+          type: string
+          example: "1.0.0"
+
+    SecretTypesResponse:
+      type: object
+      properties:
+        types:
+          type: array
+          items:
+            type: string
+          example: ["AWS", "Google", "Slack", "GitHub"]
+        count:
+          type: integer
+          example: 24
+        categories:
+          type: object
+          properties:
+            cloud_providers:
+              type: array
+              items:
+                type: string
+              example: ["AWS", "Google", "Azure Storage"]
+            communication:
+              type: array
+              items:
+                type: string
+              example: ["Slack", "Twilio", "SendGrid"]
+            development:
+              type: array
+              items:
+                type: string
+              example: ["GitHub", "Heroku", "CircleCI"]
+
+    Rule:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the detection rule
+          example: "AWS"
+        pattern:
+          type: string
+          description: Regex pattern for detection
+          example: "AKIA[0-9A-Z]{16}"
+        description:
+          type: string
+          description: Human-readable description
+          example: "Amazon Web Services Access Key"
+
+    DefaultRulesResponse:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rule'
+        count:
+          type: integer
+          example: 24
+
+    CustomRule:
+      type: object
+      required:
+        - name
+        - pattern
+      properties:
+        name:
+          type: string
+          description: Name for the custom rule
+          example: "MY_CUSTOM_API_KEY"
+        pattern:
+          type: string
+          description: Regex pattern for detection
+          example: "my-[a-zA-Z0-9]{32}"
+        description:
+          type: string
+          description: Optional description
+          example: "Custom internal API key format"
+
+    CustomRulesRequest:
+      type: object
+      required:
+        - rules
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomRule'
+
+    RuleValidationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        message:
+          type: string
+          example: "All rules are valid"
+        validated_rules:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/CustomRule'
+              - type: object
+                properties:
+                  status:
+                    type: string
+                    example: "valid"
+        count:
+          type: integer
+          example: 1
+
+    ExamplePayloadsResponse:
+      type: object
+      properties:
+        description:
+          type: string
+          example: "Sample payloads for testing the Kai API endpoints"
+        payloads:
+          type: object
+          properties:
+            scan_single_repo:
+              type: object
+            scan_bulk_repos:
+              type: object
+            scan_with_config:
+              type: object
+            custom_rules_validation:
+              type: object
+
+    SingleScanRequest:
+      type: object
+      required:
+        - repo
+      properties:
+        repo:
+          type: string
+          format: uri
+          description: GitHub repository URL
+          example: "https://github.com/octocat/Hello-World.git"
+
+    BulkScanRequest:
+      type: object
+      required:
+        - repos
+      properties:
+        repos:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 10
+          description: Array of GitHub repository URLs (max 10)
+          example: 
+            - "https://github.com/org1/service-a.git"
+            - "https://github.com/org2/service-b.git"
+
+    ConfiguredScanRequest:
+      type: object
+      required:
+        - repo
+      properties:
+        repo:
+          type: string
+          format: uri
+          description: GitHub repository URL
+          example: "https://github.com/octocat/Hello-World.git"
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomRule'
+          description: Custom detection rules (optional)
+        exclude_paths:
+          type: array
+          items:
+            type: string
+          description: Folders/files to skip during scanning
+          example: ["test/", "docs/", "node_modules/"]
+        file_types:
+          type: array
+          items:
+            type: string
+          description: File extensions to scan (if specified, only these types will be scanned)
+          example: [".env", ".yml", ".json", ".js"]
+
+    SecretMatch:
+      type: object
+      properties:
+        file:
+          type: string
+          description: File path where the secret was found
+          example: "/tmp/repo/config/secrets.env"
+        type:
+          type: string
+          description: Type of secret detected
+          example: "AWS"
+        match:
+          type: string
+          description: The detected secret (truncated for security)
+          example: "AKIAIOSFODNN7EXAMPLE..."
+
+    ScanResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        repository:
+          type: string
+          example: "https://github.com/octocat/Hello-World.git"
+        scan_duration_seconds:
+          type: number
+          example: 2.34
+        files_scanned:
+          type: integer
+          example: 45
+        issues_found:
+          type: integer
+          example: 3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecretMatch'
+          maxItems: 100
+
+    BulkScanResult:
+      type: object
+      properties:
+        repository:
+          type: string
+          example: "https://github.com/org1/service-a.git"
+        status:
+          type: string
+          enum: ["success", "error"]
+          example: "success"
+        files_scanned:
+          type: integer
+          example: 45
+        issues_found:
+          type: integer
+          example: 2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecretMatch'
+          maxItems: 50
+        error:
+          type: string
+          description: Error message (only present when status is "error")
+
+    BulkScanResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "completed"
+        scan_duration_seconds:
+          type: number
+          example: 15.67
+        repositories_requested:
+          type: integer
+          example: 3
+        repositories_scanned:
+          type: integer
+          example: 2
+        total_issues_found:
+          type: integer
+          example: 5
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkScanResult'
+
+    ScanConfiguration:
+      type: object
+      properties:
+        custom_rules_applied:
+          type: integer
+          example: 2
+        exclude_paths:
+          type: array
+          items:
+            type: string
+          example: ["test/", "docs/"]
+        file_types_filter:
+          type: array
+          items:
+            type: string
+          example: [".env", ".yml"]
+        total_patterns:
+          type: integer
+          example: 26
+
+    ConfiguredScanResponse:
+      allOf:
+        - $ref: '#/components/schemas/ScanResponse'
+        - type: object
+          properties:
+            configuration:
+              $ref: '#/components/schemas/ScanConfiguration'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message describing what went wrong
+          example: "Repository URL is required"
+        example:
+          type: object
+          description: Example of correct request format (when applicable)
+
+tags:
+  - name: Documentation
+    description: API documentation and examples
+  - name: Health
+    description: Service health monitoring
+  - name: Configuration
+    description: Rules and secret types configuration
+  - name: Scanning
+    description: Repository scanning operations
+
+externalDocs:
+  description: Find out more about Kai API
+  url: https://github.com/your-org/kai-api

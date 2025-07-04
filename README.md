@@ -1,13 +1,113 @@
-# Kai - API 🔐
+# Kai API - Secret Scanner 🔐
 
-A powerful API key leak detection service that scans GitHub repositories for exposed secrets, API keys, and sensitive files. KeySentry helps developers and security teams identify potential security vulnerabilities in their codebases.
+A comprehensive API service for scanning GitHub repositories to detect API keys, secrets, and sensitive files.
 
-## 🌟 Features
+## 🚀 Features
 
-- **Comprehensive Pattern Detection**: Scans for 24+ types of API keys and secrets including:
-  - AWS Access Keys
-  - Google API Keys
-  - Slack Tokens
+- **Single Repository Scanning**: Scan individual GitHub repositories
+- **Bulk Scanning**: Scan up to 10 repositories in one request
+- **Custom Rules**: Define your own regex patterns for detection
+- **File Filtering**: Include/exclude specific file types and paths
+- **24+ Secret Types**: Detect AWS keys, Google API keys, Slack tokens, and more
+- **Real-time Processing**: No data storage, immediate results
+- **Interactive Documentation**: Built-in Swagger UI
+
+## 📚 API Documentation
+
+### Interactive Documentation
+Visit the Swagger UI for interactive API exploration:
+```
+GET /docs
+```
+
+### OpenAPI Specifications
+- **JSON Format**: `GET /openapi.json`
+- **YAML Format**: `GET /openapi.yaml`
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
+- Python 3.7+
+- Git (for repository cloning)
+
+### Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Run the Application
+```bash
+python app.py
+```
+
+The API will be available at `http://localhost:5000`
+
+## 🔍 Quick Start Examples
+
+### 1. Health Check
+```bash
+curl -X GET "http://localhost:5000/health"
+```
+
+### 2. Scan a Single Repository
+```bash
+curl -X POST "http://localhost:5000/scan" \
+  -H "Content-Type: application/json" \
+  -d '{"repo": "https://github.com/octocat/Hello-World.git"}'
+```
+
+### 3. Scan Multiple Repositories
+```bash
+curl -X POST "http://localhost:5000/scan/bulk" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repos": [
+      "https://github.com/octocat/Hello-World.git",
+      "https://github.com/octocat/Spoon-Knife.git"
+    ]
+  }'
+```
+
+### 4. Scan with Custom Configuration
+```bash
+curl -X POST "http://localhost:5000/scan/with-config" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo": "https://github.com/octocat/Hello-World.git",
+    "rules": [
+      {
+        "name": "CUSTOM_API_KEY",
+        "pattern": "custom-[a-zA-Z0-9]{32}",
+        "description": "Custom API key format"
+      }
+    ],
+    "exclude_paths": ["test/", "docs/"],
+    "file_types": [".env", ".yml", ".json"]
+  }'
+```
+
+### 5. Quick Repository Scan (URL Parameters)
+```bash
+curl -X GET "http://localhost:5000/scan/octocat/Hello-World"
+```
+
+## 📋 Available Endpoints
+
+| Endpoint | Method | Description |
+|----------|---------|-------------|
+| `/` | GET | API documentation |
+| `/health` | GET | Health check |
+| `/docs` | GET | Interactive Swagger UI |
+| `/openapi.json` | GET | OpenAPI spec (JSON) |
+| `/openapi.yaml` | GET | OpenAPI spec (YAML) |
+| `/scan` | POST | Scan single repository |
+| `/scan/bulk` | POST | Scan multiple repositories |
+| `/scan/with-config` | POST | Scan with custom configuration |
+| `/scan/{username}/{repo}` | GET | Quick scan by URL parameters |
+| `/secrets/types` | GET | List supported secret types |
+| `/rules/default` | GET | Get default detection rules |
+| `/config/rules` | POST | Validate custom rules |
+| `/example-payloads` | GET | Sample request payloads |
   - Stripe Keys
   - OpenAI Keys
   - JWT Tokens
