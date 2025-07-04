@@ -467,4 +467,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**⚠️ Disclaimer**: KeySentry is a security tool designed to help identify potential vulnerabilities. Always validate findings and follow security best practices. This tool should be used as part of a comprehensive security strategy, not as the sole security measure.
+**⚠️ Disclaimer**: Kai-API is a security tool designed to help identify potential vulnerabilities. Always validate findings and follow security best practices. This tool should be used as part of a comprehensive security strategy, not as the sole security measure.
